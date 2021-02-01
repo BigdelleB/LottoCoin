@@ -1,16 +1,20 @@
+// SPDX-License-Identifier: UNLICENSED
+
 pragma solidity ^0.7.0;
 
-import './Utils.sol';
-import '@openzeppelin/contracts/access/Ownable.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20Burnable.sol';
-import '@openzeppelin/contracts/token/ERC20/ERC20Pausable.sol';
+import './access/Ownable.sol';
+import './token/ERC20Burnable.sol';
+import './token/ERC20Pausable.sol';
 
 /**
     ERC20 Standard Token implementation
 */
-contract LottoToken is ERC20Burnable, ERC20Pausable, Ownable, Utils {
+contract LottoToken is ERC20Burnable, ERC20Pausable, Ownable {
 	string public standard = 'LottoToken';
 	uint GameId = 0;
+	uint MaxRand = 1000;
+	
+	event EventRand(uint16 amount); // Event
 
 	/**
 	*	@dev constructor
@@ -19,15 +23,7 @@ contract LottoToken is ERC20Burnable, ERC20Pausable, Ownable, Utils {
     constructor () public
 	ERC20("LottoToken", "LTT")
 	{
-		_mint(_msgSender(), 100000000000);
-	}
-
-	/**
-		 @dev renounceOwnership disabled
-	*/
-
-	function renounceOwnership() public override {
-		revert("renouncing ownership is blocked");
+		_mint(_msgSender(), 100000000);
 	}
 
 	/**
@@ -39,14 +35,17 @@ contract LottoToken is ERC20Burnable, ERC20Pausable, Ownable, Utils {
 	}
 
 
-	function random() private view returns (uint8) {
-    	return uint8(uint256(keccak256(block.timestamp, block.difficulty)) % 1000000);
+	function random() private view returns (uint16) {
+    	return uint16(uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % MaxRand) + 1;
    	}
 	/**
 		 @dev BuyTicket
 	*/
 
-	function BuyTicket() external payable {
+	function BuyTicket() external payable EndGame() {
+		require(msg.value < 0.1 ether, "Amount is not enoough to buy");
+	    uint16 rand = random();
+	    emit EventRand(rand);
 		_transfer(owner(), _msgSender(), random());
 	}
 
@@ -54,7 +53,7 @@ contract LottoToken is ERC20Burnable, ERC20Pausable, Ownable, Utils {
 		 @dev ExchangeTicket
 	*/
 
-	function ExchangeTicket(uint256 amount) public {
+	function ExchangeTicket(uint256 amount) public EndGame() {
 		_burn(_msgSender(), amount);
 		_transfer(owner(), _msgSender(), random());
 	}
@@ -63,7 +62,10 @@ contract LottoToken is ERC20Burnable, ERC20Pausable, Ownable, Utils {
 		 @dev EndGame
 	*/
 
-	function EndGame() internal {
-
+	modifier EndGame() {
+		if (uint(uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % 10000) == 1) {
+			GameId = GameId + 1;
+		}
+		_;
 	}
 }
