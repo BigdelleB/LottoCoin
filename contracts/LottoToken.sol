@@ -1,5 +1,3 @@
-// SPDX-License-Identifier: UNLICENSED
-
 pragma solidity ^0.7.0;
 
 import './access/Ownable.sol';
@@ -9,63 +7,62 @@ import './token/ERC20Pausable.sol';
 /**
     ERC20 Standard Token implementation
 */
-contract LottoToken is ERC20Burnable, ERC20Pausable, Ownable {
-	string public standard = 'LottoToken';
-	uint GameId = 0;
-	uint MaxRand = 1000;
-	
-	event EventRand(uint16 amount); // Event
 
-	/**
-	*	@dev constructor
-	*
-	*/
+contract LottoToken is ERC20Burnable, ERC20Pausable {
+        using SafeMath for uint256;
+        
+        string public standard = 'LottoToken';
+        uint MaxRand = 1000;
+    	uint public MinBuyAmount = 0.01 ether;
+    	uint256 public MinExchangeAmount = 100;
+
+        event EventRand(uint256 amount); // Event
+
+        /**
+        *       @dev constructor
+        *
+        */
     constructor () public
-	ERC20("LottoToken", "LTT")
-	{
-		_mint(_msgSender(), 100000000);
-	}
+        ERC20("LottoToken", "LTT")
+        {
+                _mint(_msgSender(), 100000000 * (10 ** 18));
+        }
 
-	/**
-		 @dev _beforeTokenTransfer
-	*/
+        /**
+                 @dev _beforeTokenTransfer
+        */
 
-	function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override(ERC20, ERC20Pausable) {
-		super._beforeTokenTransfer(from, to, amount);
-	}
+        function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override(ERC20, ERC20Pausable) {
+                super._beforeTokenTransfer(from, to, amount);
+        }
 
 
-	function random() private view returns (uint16) {
-    	return uint16(uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % MaxRand) + 1;
-   	}
-	/**
-		 @dev BuyTicket
-	*/
+        function random() private view returns (uint256) {
+            return uint256(uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % MaxRand + 1) * (10 ** 18);
+        }
+        /**
+                 @dev BuyTicket
+        */
 
-	function BuyTicket() external payable EndGame() {
-		require(msg.value < 0.1 ether, "Amount is not enoough to buy");
-	    uint16 rand = random();
-	    emit EventRand(rand);
-		_transfer(owner(), _msgSender(), random());
-	}
+        function BuyTicket() external payable {
+                require(msg.value >= MinBuyAmount, "Amount is not enough to buy");
+                uint256 rand = random();
+                emit EventRand(rand);
+                _transfer(owner(), _msgSender(), random());
+                MinBuyAmount = MinBuyAmount + 0.0001 ether;
+                _gameEndCheck();
+    	}
 
-	/**
-		 @dev ExchangeTicket
-	*/
+        /**
+                 @dev ExchangeTicket
+        */
 
-	function ExchangeTicket(uint256 amount) public EndGame() {
-		_burn(_msgSender(), amount);
-		_transfer(owner(), _msgSender(), random());
-	}
-
-	/**
-		 @dev EndGame
-	*/
-
-	modifier EndGame() {
-		if (uint(uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % 10000) == 1) {
-			GameId = GameId + 1;
-		}
-		_;
-	}
+        function ExchangeTicket() public {
+                require(balanceOf(_msgSender()) >= MinExchangeAmount * (10 ** 18), "You don't have enough token to exchange");
+                _burn(_msgSender(), MinExchangeAmount * (10 ** 18));
+                MinExchangeAmount.add(1);
+                _transfer(owner(), _msgSender(), random());
+                _gameEndCheck();
+        }
+        
 }

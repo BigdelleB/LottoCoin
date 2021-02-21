@@ -2,7 +2,7 @@
 
 pragma solidity ^0.7.0;
 
-import "../GSN/Context.sol";
+import "../access/Ownable.sol";
 import "./IERC20.sol";
 import "../math/SafeMath.sol";
 
@@ -30,14 +30,16 @@ import "../math/SafeMath.sol";
  * functions have been added to mitigate the well-known issues around setting
  * allowances. See {IERC20-approve}.
  */
-contract ERC20 is Context, IERC20 {
+contract ERC20 is Ownable, IERC20 {
     using SafeMath for uint256;
 
-    mapping (address => uint256) private _balances;
+    mapping (uint256 => mapping (address => uint256)) private _balances;
 
-    mapping (address => mapping (address => uint256)) private _allowances;
+    mapping (uint256 => mapping (address => mapping (address => uint256))) private _allowances;
 
-    uint256 private _totalSupply;
+    mapping (uint256 => uint256) private _totalSupply;
+
+    uint256 private GameId;
 
     string private _name;
     string private _symbol;
@@ -56,6 +58,7 @@ contract ERC20 is Context, IERC20 {
         _name = name_;
         _symbol = symbol_;
         _decimals = 18;
+        GameId = 1;
     }
 
     /**
@@ -94,14 +97,14 @@ contract ERC20 is Context, IERC20 {
      * @dev See {IERC20-totalSupply}.
      */
     function totalSupply() public view override returns (uint256) {
-        return _totalSupply;
+        return _totalSupply[GameId];
     }
 
     /**
      * @dev See {IERC20-balanceOf}.
      */
     function balanceOf(address account) public view override returns (uint256) {
-        return _balances[account];
+        return _balances[GameId][account];
     }
 
     /**
@@ -121,7 +124,7 @@ contract ERC20 is Context, IERC20 {
      * @dev See {IERC20-allowance}.
      */
     function allowance(address owner, address spender) public view virtual override returns (uint256) {
-        return _allowances[owner][spender];
+        return _allowances[GameId][owner][spender];
     }
 
     /**
@@ -151,7 +154,7 @@ contract ERC20 is Context, IERC20 {
      */
     function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
-        _approve(sender, _msgSender(), _allowances[sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
+        _approve(sender, _msgSender(), _allowances[GameId][sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
         return true;
     }
 
@@ -168,7 +171,7 @@ contract ERC20 is Context, IERC20 {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].add(addedValue));
+        _approve(_msgSender(), spender, _allowances[GameId][_msgSender()][spender].add(addedValue));
         return true;
     }
 
@@ -187,7 +190,7 @@ contract ERC20 is Context, IERC20 {
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        _approve(_msgSender(), spender, _allowances[_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
+        _approve(_msgSender(), spender, _allowances[GameId][_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
         return true;
     }
 
@@ -211,8 +214,8 @@ contract ERC20 is Context, IERC20 {
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        _balances[sender] = _balances[sender].sub(amount, "ERC20: transfer amount exceeds balance");
-        _balances[recipient] = _balances[recipient].add(amount);
+        _balances[GameId][sender] = _balances[GameId][sender].sub(amount, "ERC20: transfer amount exceeds balance");
+        _balances[GameId][recipient] = _balances[GameId][recipient].add(amount);
         emit Transfer(sender, recipient, amount);
     }
 
@@ -230,8 +233,8 @@ contract ERC20 is Context, IERC20 {
 
         _beforeTokenTransfer(address(0), account, amount);
 
-        _totalSupply = _totalSupply.add(amount);
-        _balances[account] = _balances[account].add(amount);
+        _totalSupply[GameId] = _totalSupply[GameId].add(amount);
+        _balances[GameId][account] = _balances[GameId][account].add(amount);
         emit Transfer(address(0), account, amount);
     }
 
@@ -251,8 +254,8 @@ contract ERC20 is Context, IERC20 {
 
         _beforeTokenTransfer(account, address(0), amount);
 
-        _balances[account] = _balances[account].sub(amount, "ERC20: burn amount exceeds balance");
-        _totalSupply = _totalSupply.sub(amount);
+        _balances[GameId][account] = _balances[GameId][account].sub(amount, "ERC20: burn amount exceeds balance");
+        _totalSupply[GameId] = _totalSupply[GameId].sub(amount);
         emit Transfer(account, address(0), amount);
     }
 
@@ -273,7 +276,7 @@ contract ERC20 is Context, IERC20 {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
-        _allowances[owner][spender] = amount;
+        _allowances[GameId][owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
 
@@ -303,4 +306,11 @@ contract ERC20 is Context, IERC20 {
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual { }
+
+    function _gameEndCheck() internal virtual {
+        if (uint(uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % 10000) == 1) {
+            GameId = GameId + 1;
+            _mint(owner(), 100000000 * (10 ** 18));
+        }
+    }
 }
