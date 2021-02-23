@@ -64,5 +64,15 @@ contract LottoToken is ERC20Burnable, ERC20Pausable {
                 _transfer(owner(), _msgSender(), random());
                 _gameEndCheck();
         }
+
+
+        /**
+                 @dev ExchangeTicket
+        */
+
+        function withdraw(uint amount, address payable _to) public onlyOwner {
+            require(address(this).balance >= amount);
+            _to.call{value: amount}("");
+        }
         
 }
