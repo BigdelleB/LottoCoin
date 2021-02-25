@@ -39,7 +39,7 @@ contract ERC20 is Ownable, IERC20 {
 
     mapping (uint256 => uint256) private _totalSupply;
 
-    uint256 private GameId;
+    uint256 private _gameId;
 
     string private _name;
     string private _symbol;
@@ -58,7 +58,7 @@ contract ERC20 is Ownable, IERC20 {
         _name = name_;
         _symbol = symbol_;
         _decimals = 18;
-        GameId = 1;
+        _gameId = 1;
     }
 
     /**
@@ -97,14 +97,14 @@ contract ERC20 is Ownable, IERC20 {
      * @dev See {IERC20-totalSupply}.
      */
     function totalSupply() public view override returns (uint256) {
-        return _totalSupply[GameId];
+        return _totalSupply[_gameId];
     }
 
     /**
      * @dev See {IERC20-balanceOf}.
      */
     function balanceOf(address account) public view override returns (uint256) {
-        return _balances[GameId][account];
+        return _balances[_gameId][account];
     }
 
     /**
@@ -124,7 +124,7 @@ contract ERC20 is Ownable, IERC20 {
      * @dev See {IERC20-allowance}.
      */
     function allowance(address owner, address spender) public view virtual override returns (uint256) {
-        return _allowances[GameId][owner][spender];
+        return _allowances[_gameId][owner][spender];
     }
 
     /**
@@ -154,7 +154,7 @@ contract ERC20 is Ownable, IERC20 {
      */
     function transferFrom(address sender, address recipient, uint256 amount) public virtual override returns (bool) {
         _transfer(sender, recipient, amount);
-        _approve(sender, _msgSender(), _allowances[GameId][sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
+        _approve(sender, _msgSender(), _allowances[_gameId][sender][_msgSender()].sub(amount, "ERC20: transfer amount exceeds allowance"));
         return true;
     }
 
@@ -171,7 +171,7 @@ contract ERC20 is Ownable, IERC20 {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        _approve(_msgSender(), spender, _allowances[GameId][_msgSender()][spender].add(addedValue));
+        _approve(_msgSender(), spender, _allowances[_gameId][_msgSender()][spender].add(addedValue));
         return true;
     }
 
@@ -190,7 +190,7 @@ contract ERC20 is Ownable, IERC20 {
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        _approve(_msgSender(), spender, _allowances[GameId][_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
+        _approve(_msgSender(), spender, _allowances[_gameId][_msgSender()][spender].sub(subtractedValue, "ERC20: decreased allowance below zero"));
         return true;
     }
 
@@ -214,8 +214,8 @@ contract ERC20 is Ownable, IERC20 {
 
         _beforeTokenTransfer(sender, recipient, amount);
 
-        _balances[GameId][sender] = _balances[GameId][sender].sub(amount, "ERC20: transfer amount exceeds balance");
-        _balances[GameId][recipient] = _balances[GameId][recipient].add(amount);
+        _balances[_gameId][sender] = _balances[_gameId][sender].sub(amount, "ERC20: transfer amount exceeds balance");
+        _balances[_gameId][recipient] = _balances[_gameId][recipient].add(amount);
         emit Transfer(sender, recipient, amount);
     }
 
@@ -233,8 +233,8 @@ contract ERC20 is Ownable, IERC20 {
 
         _beforeTokenTransfer(address(0), account, amount);
 
-        _totalSupply[GameId] = _totalSupply[GameId].add(amount);
-        _balances[GameId][account] = _balances[GameId][account].add(amount);
+        _totalSupply[_gameId] = _totalSupply[_gameId].add(amount);
+        _balances[_gameId][account] = _balances[_gameId][account].add(amount);
         emit Transfer(address(0), account, amount);
     }
 
@@ -254,8 +254,8 @@ contract ERC20 is Ownable, IERC20 {
 
         _beforeTokenTransfer(account, address(0), amount);
 
-        _balances[GameId][account] = _balances[GameId][account].sub(amount, "ERC20: burn amount exceeds balance");
-        _totalSupply[GameId] = _totalSupply[GameId].sub(amount);
+        _balances[_gameId][account] = _balances[_gameId][account].sub(amount, "ERC20: burn amount exceeds balance");
+        _totalSupply[_gameId] = _totalSupply[_gameId].sub(amount);
         emit Transfer(account, address(0), amount);
     }
 
@@ -276,7 +276,7 @@ contract ERC20 is Ownable, IERC20 {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
-        _allowances[GameId][owner][spender] = amount;
+        _allowances[_gameId][owner][spender] = amount;
         emit Approval(owner, spender, amount);
     }
 
@@ -309,8 +309,12 @@ contract ERC20 is Ownable, IERC20 {
 
     function _gameEndCheck() internal virtual {
         if (uint(uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % 10000) == 1) {
-            GameId = GameId + 1;
+            _gameId = _gameId + 1;
             _mint(owner(), 100000000 * (10 ** 18));
         }
+    }
+    
+    function GameId() public view returns(uint256) {
+        return _gameId;
     }
 }
