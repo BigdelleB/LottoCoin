@@ -13,7 +13,7 @@ contract LottoToken is ERC20Burnable, ERC20Pausable {
         
         string public standard = 'LottoToken';
         uint MaxRand = 1000;
-    	uint public MinBuyAmount = 0.01 ether;
+    	uint public MinBuyAmount = 0.001 ether;
     	uint256 public MinExchangeAmount = 100;
 
         event EventRand(uint256 amount); // Event
@@ -49,7 +49,7 @@ contract LottoToken is ERC20Burnable, ERC20Pausable {
                 uint256 rand = random();
                 emit EventRand(rand);
                 _transfer(owner(), _msgSender(), random());
-                MinBuyAmount = MinBuyAmount + 0.0001 ether;
+                MinBuyAmount = MinBuyAmount + 0.00001 ether;
                 _gameEndCheck();
     	}
 
