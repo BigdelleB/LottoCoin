@@ -15,7 +15,7 @@ contract LottoToken is Ownable, ERC20Pausable {
     uint public MinBuyAmount = 0.001 ether;
     uint256 public MinExchangeAmount = 100;
 
-    address private wallet;
+    address payable private wallet;
     address private teamReserve;
     uint256 weiRaised;
 
@@ -25,7 +25,7 @@ contract LottoToken is Ownable, ERC20Pausable {
     *       @dev constructor
     *
     */
-    constructor (address _wallet, address _teamReserve) public
+    constructor (address payable _wallet, address _teamReserve) public
     ERC20("LottoToken", "LTT")
     {
         teamReserve = _teamReserve;
@@ -89,7 +89,7 @@ contract LottoToken is Ownable, ERC20Pausable {
         @dev changeWallet
     */
 
-    function changeWallet(address _newWallet) public onlyOwner {
+    function changeWallet(address payable _newWallet) public onlyOwner {
         require(_newWallet != address(0), 'Not valid address');
         wallet = _newWallet;
     }
