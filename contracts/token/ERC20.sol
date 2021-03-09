@@ -307,13 +307,10 @@ contract ERC20 is Ownable, IERC20 {
      */
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual { }
 
-    function _gameEndCheck() internal virtual {
-        if (uint(uint256(keccak256(abi.encodePacked(block.timestamp, block.difficulty))) % 10000) == 1) {
-            _gameId = _gameId + 1;
-            _mint(owner(), 100000000 * (10 ** 18));
-        }
+    function _incraseGameId() internal {
+        _gameId = _gameId.add(1);
     }
-    
+
     function GameId() public view returns(uint256) {
         return _gameId;
     }
